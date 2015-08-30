@@ -1,5 +1,22 @@
 package com.tikal.lazychopper;
 
+import com.tikal.lazychopper.GraphTraverser.TraverseException;
+import org.hibernate.Hibernate;
+import org.hibernate.collection.PersistentCollection;
+import org.hibernate.collection.PersistentMap;
+import org.hibernate.envers.entities.mapper.relation.lazy.proxy.CollectionProxy;
+import org.hibernate.proxy.HibernateProxy;
+import org.hibernate.proxy.LazyInitializer;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
+import org.springframework.core.io.support.ResourcePatternResolver;
+import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
+import org.springframework.core.type.classreading.MetadataReader;
+import org.springframework.core.type.classreading.MetadataReaderFactory;
+import org.springframework.util.ClassUtils;
+
+import javax.persistence.EmbeddedId;
+import javax.persistence.Id;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
@@ -13,32 +30,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import javax.persistence.EmbeddedId;
-import javax.persistence.Id;
-
-import org.hibernate.Hibernate;
-import org.hibernate.collection.PersistentCollection;
-import org.hibernate.envers.entities.mapper.relation.lazy.proxy.CollectionProxy;
-import org.hibernate.proxy.HibernateProxy;
-import org.hibernate.proxy.LazyInitializer;
-import org.springframework.core.io.Resource;
-import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
-import org.springframework.core.io.support.ResourcePatternResolver;
-import org.springframework.core.type.classreading.CachingMetadataReaderFactory;
-import org.springframework.core.type.classreading.MetadataReader;
-import org.springframework.core.type.classreading.MetadataReaderFactory;
-import org.springframework.util.ClassUtils;
-
-import com.tikal.lazychopper.GraphTraverser.TraverseException;
-
 @SuppressWarnings("rawtypes")
 public class EntityLazyInitializationChopper implements LazyInitializationChopper {
 
 	// do we need to use concurrent map here
 	private Map<Class<?>, List<Field>> immutableMap;
-	
+
 	private Map<Class<?>, Field> classIdFieldMap;
-	
+
 	private GraphTraverser graphTraverser = new GraphTraverser();
 
 	private static final String RESOURCE_PATTERN = "/**/*.class";
@@ -73,7 +72,7 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 						|| clazz.getAnnotation(javax.persistence.Embeddable.class) != null) {
 					List<Field> fields = new ArrayList<Field>();
 					getAllFields(classFieldsMap, clazz, fields, classIdMap);
-					classFieldsMap.put(clazz, fields);					
+					classFieldsMap.put(clazz, fields);
 				}
 			}
 		}
@@ -101,11 +100,11 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 		try {
 			graphTraverser.traverse(node, new GraphTraverser.GraphNodeVisitor() {
 
-				private Map<Integer,Object> visited = new HashMap<Integer,Object>();
+				private Map<Integer, Object> visited = new HashMap<Integer, Object>();
 
 				@Override
-				public Map<Integer,Object> visitAndGetDescendants(Object node) throws TraverseException {
-					visited.put(System.identityHashCode(node),node);
+				public Map<Integer, Object> visitAndGetDescendants(Object node) throws TraverseException {
+					visited.put(System.identityHashCode(node), node);
 					try {
 						return chopLazyAndReturnDescendants(node);
 					} catch (Exception e) {
@@ -125,11 +124,11 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 		}
 	}
 
-	private Map<Integer,Object> chopLazyAndReturnDescendants(Object node) throws IllegalAccessException,
-																	IllegalArgumentException, SecurityException,
-																	NoSuchFieldException {
+	private Map<Integer, Object> chopLazyAndReturnDescendants(Object node) throws IllegalAccessException,
+																			IllegalArgumentException,
+																			SecurityException, NoSuchFieldException {
 
-		Map<Integer,Object> descendants = new HashMap<Integer,Object>();
+		Map<Integer, Object> descendants = new HashMap<Integer, Object>();
 
 		List<Field> fields = immutableMap.get(node.getClass());
 		if (fields != null) {
@@ -141,7 +140,10 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 		return descendants;
 	}
 
-	private void getAllFields(Map<Class<?>, List<Field>> map, Class<?> nodeClass, List<Field> fields, Map<Class<?>, Field> classIdMap) {
+	private void getAllFields(	Map<Class<?>, List<Field>> map,
+								Class<?> nodeClass,
+								List<Field> fields,
+								Map<Class<?>, Field> classIdMap) {
 		Field idField = null;
 		if (map.containsKey(nodeClass)) {
 			fields.addAll(map.get(nodeClass));
@@ -155,31 +157,32 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 		for (Field fild : nodeClass.getDeclaredFields()) {
 			fields.add(fild);
 			Id idAnnotation = fild.getAnnotation(Id.class);
-			if(idAnnotation!=null) {
-				idField  = fild;
+			if (idAnnotation != null) {
+				idField = fild;
 			} else {
 				EmbeddedId embeddedIdAnnotation = fild.getAnnotation(EmbeddedId.class);
-				if(embeddedIdAnnotation!=null) {
-					idField  = fild;
+				if (embeddedIdAnnotation != null) {
+					idField = fild;
 				}
 			}
 		}
 
 		Class<?> superclass = nodeClass.getSuperclass();
-		
+
 		getAllFields(map, superclass, fields, classIdMap);
-		
-		if(idField!= null) {
+
+		if (idField != null) {
 			classIdMap.put(nodeClass, idField);
 		} else {
 			classIdMap.put(nodeClass, classIdMap.get(superclass));
 		}
 	}
 
-	private void chopLazyField(Object node, Map<Integer,Object> descendents, Field field) throws IllegalAccessException,
-																					IllegalArgumentException,
-																					SecurityException,
-																					NoSuchFieldException {
+	private void chopLazyField(Object node, Map<Integer, Object> descendents, Field field)
+																							throws IllegalAccessException,
+																							IllegalArgumentException,
+																							SecurityException,
+																							NoSuchFieldException {
 		field.setAccessible(true);
 		Object fieldVal = field.get(node);
 		if (fieldVal == null) {
@@ -208,70 +211,93 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 		field.set(node, lazyReplacement);
 	}
 
-	private void handleIntitialized(Map<Integer,Object> descendents, Object fieldVal, Object node, Field field)
-																										throws SecurityException,
-																										NoSuchFieldException,
-																										IllegalArgumentException,
-																									IllegalAccessException {
-		if(fieldVal instanceof Collection && collectionContainsProxies((Collection)fieldVal)){
-			fieldVal = filterProxiesFromCollection((Collection)fieldVal);
+	private void handleIntitialized(Map<Integer, Object> descendents, Object fieldVal, Object node, Field field)
+																												throws SecurityException,
+																												NoSuchFieldException,
+																												IllegalArgumentException,
+																												IllegalAccessException {
+		if (fieldVal instanceof PersistentMap) {
+
+			Map map = (Map) ((PersistentCollection) fieldVal).getValue();
+			for (Object entry : map.entrySet()) {
+				Object key = ((Map.Entry) entry).getKey();
+				Object value = ((Map.Entry) entry).getValue();
+				descendents.put(System.identityHashCode(key), key);
+				descendents.put(System.identityHashCode(value), value);
+			}
+
+		} else if (fieldVal instanceof Collection && collectionContainsProxies((Collection) fieldVal)) {
+			fieldVal = filterProxiesFromCollection((Collection) fieldVal);
 			field.set(node, fieldVal);
-		}
-		if (fieldVal instanceof PersistentCollection) {
+		} else if (fieldVal instanceof PersistentCollection) {
 			Collection<?> col = (Collection<?>) ((PersistentCollection) fieldVal).getValue();
-			for (Object object : col) 
-				descendents.put(System.identityHashCode(object),object);
-			
-		} else if (fieldVal instanceof HibernateProxy) {
+			for (Object object : col)
+				descendents.put(System.identityHashCode(object), object);
+
+		} else if (fieldVal instanceof HibernateProxy)
+
+		{
 			Object implementation = ((HibernateProxy) fieldVal).getHibernateLazyInitializer().getImplementation();
 			field.set(node, implementation);
-			descendents.put(System.identityHashCode(implementation),implementation);
-		} else if (fieldVal instanceof CollectionProxy) {
+			descendents.put(System.identityHashCode(implementation), implementation);
+		} else if (fieldVal instanceof CollectionProxy)
+
+		{
 			CollectionProxy collectionProxy = (CollectionProxy) fieldVal;
 			Field delegateField = CollectionProxy.class.getDeclaredField("delegate");
 			delegateField.setAccessible(true);
 			Object implementation = delegateField.get(collectionProxy);
 			field.set(node, implementation);
 			Collection col = (Collection) implementation;
-			for (Object object : col) 
-				descendents.put(System.identityHashCode(object),object);
+			for (Object object : col)
+				descendents.put(System.identityHashCode(object), object);
 		} else if (fieldVal != null
-				&& (abstractEntityClass.isAssignableFrom(fieldVal.getClass()) || fieldVal.getClass()
-						.isAnnotationPresent(Chopped.class))) {
-			descendents.put(System.identityHashCode(fieldVal),fieldVal);
-		} else if (fieldVal instanceof Collection) {
+				&& (abstractEntityClass.isAssignableFrom(fieldVal.getClass()) || fieldVal.getClass().
+
+				isAnnotationPresent(Chopped.class)
+
+				))
+
+		{
+			descendents.put(System.identityHashCode(fieldVal), fieldVal);
+		} else if (fieldVal instanceof Collection)
+
+		{
 			Collection<Object> col = (Collection<Object>) fieldVal;
-			for (Object object : col) 
-				descendents.put(System.identityHashCode(object),object);
+			for (Object object : col)
+				descendents.put(System.identityHashCode(object), object);
 		}
+
 	}
 
 	@Override
 	public Collection<?> filterProxiesFromCollection(Collection collection) {
-		Collection newCol =  createCollection(collection);
-		for (Object node : collection) 
-			if (node instanceof HibernateProxy){
+		Collection newCol = createCollection(collection);
+		for (Object node : collection)
+			if (node instanceof HibernateProxy) {
 				HibernateProxy proxy = (HibernateProxy) node;
-				if(Hibernate.isInitialized(proxy)){//initilized proxy
+				if (Hibernate.isInitialized(proxy)) {// initilized proxy
 					newCol.add(proxy.getHibernateLazyInitializer().getImplementation());
 				}
-			} else{//Its regular object
+			} else {// Its regular object
 				newCol.add(node);
 			}
 		return newCol;
 	}
 
 	private Collection createCollection(Collection<?> collection) {
-		if (collection instanceof Set) 
+		if (collection instanceof Set) {
 			return new LinkedHashSet();
-		return new LinkedList();		
+		}
+		return new LinkedList();
 	}
 
 	@Override
 	public boolean collectionContainsProxies(Collection collection) {
-		for (Object node : collection) 
-			if (node instanceof HibernateProxy)
+		for (Object node : collection)
+			if (node instanceof HibernateProxy) {
 				return true;
+			}
 		return false;
 	}
 
@@ -298,7 +324,7 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 			ctor.setAccessible(true);
 			Object lazyReplacement;
 			lazyReplacement = ctor.newInstance();
-			//Field idField = abstractEntityClass.getDeclaredField("id");
+			// Field idField = abstractEntityClass.getDeclaredField("id");
 			Field idField = classIdFieldMap.get(clazz);
 			idField.setAccessible(true);
 			idField.set(lazyReplacement, identifier);
