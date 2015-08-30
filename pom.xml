@@ -267,18 +267,15 @@
     </repositories>
     <distributionManagement>
         <repository>
-            <id>tikalnet-release</id>
-            <name>tikalnet-release</name>
-            <url>
-                scp://network.tikalk.com/home/tikalkno/public_html/network/release/repository
-            </url>
+            <id>sap-rel</id>
+            <name>sapiens releases</name>
+            <url>http://bdmsdev:8081/artifactory/libs-releases-local</url>
         </repository>
         <snapshotRepository>
-            <id>tikalnet-snapshot</id>
-            <name>tikalnet-snapshot</name>
-            <url>
-                scp://network.tikalk.com/home/tikalkno/public_html/network/snapshot/repository
-            </url>
+            <uniqueVersion>false</uniqueVersion>
+            <id>sap-snap</id>
+            <name>sapiens snapshots</name>
+            <url>http://bdmsdev:8081/artifactory/libs-snapshots-local</url>
         </snapshotRepository>
     </distributionManagement>
 
