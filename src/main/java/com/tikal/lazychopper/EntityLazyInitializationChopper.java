@@ -225,11 +225,14 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
 				descendents.put(System.identityHashCode(key), key);
 				descendents.put(System.identityHashCode(value), value);
 			}
+			return;
 
-		} else if (fieldVal instanceof Collection && collectionContainsProxies((Collection) fieldVal)) {
+		}
+		if (fieldVal instanceof Collection && collectionContainsProxies((Collection) fieldVal)) {
 			fieldVal = filterProxiesFromCollection((Collection) fieldVal);
 			field.set(node, fieldVal);
-		} else if (fieldVal instanceof PersistentCollection) {
+		}
+		if (fieldVal instanceof PersistentCollection) {
 			Collection<?> col = (Collection<?>) ((PersistentCollection) fieldVal).getValue();
 			for (Object object : col)
 				descendents.put(System.identityHashCode(object), object);
