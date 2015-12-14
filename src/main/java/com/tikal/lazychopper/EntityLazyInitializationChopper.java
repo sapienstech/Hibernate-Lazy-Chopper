@@ -31,6 +31,7 @@ import java.util.Set;
 
 public class EntityLazyInitializationChopper implements LazyInitializationChopper {
 
+
 	// do we need to use concurrent map here
 	private Map<Class<?>, List<Field>> immutableMap;
 	
