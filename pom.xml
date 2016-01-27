@@ -8,7 +8,7 @@
     <groupId>com.tikal.lazychopper</groupId>
     <artifactId>lazy-chopper</artifactId>
     <name>Lazy Chopper</name>
-    <version>1.2.4</version>
+    <version>1.2.5</version>
 
     <properties>
         <spring.version>4.2.4.RELEASE</spring.version>
