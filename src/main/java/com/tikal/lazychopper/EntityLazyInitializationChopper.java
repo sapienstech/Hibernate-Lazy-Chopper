@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -215,6 +216,11 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
         if (fieldVal instanceof PersistentMap) {
 
             Map map = (Map) ((PersistentCollection) fieldVal).getValue();
+            if(map instanceof PersistentMap){
+                map = new LinkedHashMap(map);
+                fieldVal = map;
+                field.set(node, fieldVal);
+            }
             for (Object entry : map.entrySet()) {
                 Object key = ((Map.Entry) entry).getKey();
                 Object value = ((Map.Entry) entry).getValue();
@@ -230,6 +236,13 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
         }
         if (fieldVal instanceof PersistentCollection) {
             Collection<?> col = (Collection<?>) ((PersistentCollection) fieldVal).getValue();
+            //implementation in AbstractPersistentCollection for getValue returns this, ie the same PersistentCollection
+            //in such case we need to replace the PersistentCollection with Collection
+            if(col instanceof PersistentCollection){
+                col = replaceCollection(col);
+                fieldVal = col;
+                field.set(node, fieldVal);
+            }
             for (Object object : col)
                 descendents.put(System.identityHashCode(object), object);
 
@@ -275,6 +288,13 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
             return new LinkedHashSet();
         }
         return new LinkedList();
+    }
+
+    private Collection replaceCollection(Collection<?> collection) {
+        if (collection instanceof Set) {
+            return new LinkedHashSet(collection);
+        }
+        return new LinkedList(collection);
     }
 
     @Override
