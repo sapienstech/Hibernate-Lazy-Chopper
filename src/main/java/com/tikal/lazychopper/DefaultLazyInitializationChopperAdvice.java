@@ -60,11 +60,11 @@ public class DefaultLazyInitializationChopperAdvice implements LazyInitializatio
 		this.order = order;
 	}
 	
-	public static void disableChop(){
+	public void disableChop(){
 		disableChop.set(true);
 	}
 	
-	public static void enableChop(){
+	public void enableChop(){
 		disableChop.set(false);
 	}
 

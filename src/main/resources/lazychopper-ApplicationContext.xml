@@ -34,6 +34,7 @@
 	<aop:config>
 		<aop:aspect id="choppingAspect" ref="choppingAdvice">
 			<aop:around method="chop" pointcut-ref="${allServicesPointcutRefName:allServices}" />
+			<aop:around method="chop" pointcut-ref="${notAopTransactionsPointcutRefName:notAopTransactions}" />
 		</aop:aspect>
 	</aop:config>
 

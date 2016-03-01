@@ -90,7 +90,7 @@ public class EntityLazyInitializationChopper implements LazyInitializationChoppe
      */
 	/*
 	 * (non-Javadoc)
-	 * 
+	 *
 	 * @see com.gilat.ngnms.server.persistence.jpa.infra.hibernate.
 	 * LazyInitializationChopperInterface#chop(java.lang.Object)
 	 */

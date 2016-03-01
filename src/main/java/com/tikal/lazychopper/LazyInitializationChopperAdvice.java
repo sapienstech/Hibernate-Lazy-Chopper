@@ -7,7 +7,8 @@ public interface LazyInitializationChopperAdvice extends Ordered {
 
 	Object chop(ProceedingJoinPoint call) throws Throwable;
 
-	@Override
-	public abstract int getOrder();
+	void disableChop();
+
+	void enableChop();
 
 }
